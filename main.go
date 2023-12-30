@@ -6,20 +6,14 @@ import (
 	_ "github.com/PuerkitoBio/goquery"
 	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
 	"github.com/go-playground/validator/v10"
+	"github.com/nv4n/go-crawler/fetch/crawl"
+	"github.com/nv4n/go-crawler/fetch/img"
 	"log"
 	"time"
 )
 
-type ImageData struct {
-	Filename   string `db:"filename" json:"filename"`
-	AltText    string `db:"alt_text" json:"alt_text"`
-	Title      string `db:"title" json:"title"`
-	Resolution string `db:"resolution" json:"resolution"`
-	Format     string `db:"format" json:"format"`
-}
-
 type Flags struct {
-	Url           *string `validate:"url"`
+	Url           *string `validate:"required,url"`
 	ExternalLinks *bool
 	Spa           *bool
 	Timeout       *int  `validate:"min=1,max=10"`
@@ -60,4 +54,7 @@ func main() {
 	ctx, cancel := setupCrawler()
 	defer close(tokenStore)
 	defer cancel()
+
+	img.InitImageStore()
+	crawl.InitPageStore()
 }
