@@ -1,9 +1,9 @@
 package crawl
 
-import "github.com/nv4n/go-crawler/fetch/store"
+import "github.com/nv4n/go-crawler/fetch/url"
 
-var PageStore *store.UrlStore
+var PageStore *url.Store
 
 func InitPageStore() {
-	PageStore := store.InitUrlStore()
+	PageStore = url.InitUrlStore()
 }

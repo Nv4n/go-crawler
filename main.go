@@ -7,7 +7,9 @@ import (
 	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
 	"github.com/go-playground/validator/v10"
 	"github.com/nv4n/go-crawler/fetch/crawl"
+	"github.com/nv4n/go-crawler/fetch/db"
 	"github.com/nv4n/go-crawler/fetch/img"
+	"github.com/nv4n/go-crawler/fetch/token"
 	"github.com/nv4n/go-crawler/model"
 	"log"
 	"net/http"
@@ -15,8 +17,6 @@ import (
 )
 
 var parsedFlags model.CliFlags
-var tokenStore chan struct{}
-
 var validate *validator.Validate
 
 func init() {
@@ -38,7 +38,7 @@ func setupCrawler() (context.Context, context.CancelFunc) {
 	if err != nil {
 		log.Fatalf("Validation errors: %+v", err)
 	}
-	tokenStore = make(chan struct{}, *parsedFlags.Goroutines)
+	token.InitTokenStore(*parsedFlags.Goroutines)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*parsedFlags.Timeout)*time.Minute)
 	return ctx, cancel
 }
@@ -47,6 +47,7 @@ func main() {
 	ctx, cancel := setupCrawler()
 	defer close(tokenStore)
 	defer cancel()
+	defer db.Db.Close()
 
 	img.InitImageStore()
 	crawl.InitPageStore()
