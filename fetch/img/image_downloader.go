@@ -3,9 +3,11 @@ package img
 import (
 	"context"
 	"fmt"
-	"github.com/nv4n/go-crawler/fetch/store"
+	"github.com/nv4n/go-crawler/fetch/url"
 	"github.com/nv4n/go-crawler/model"
 	"github.com/nv4n/go-crawler/utils"
+	"golang.org/x/image/webp"
+	"image"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
@@ -16,34 +18,28 @@ import (
 	"time"
 )
 
-type ImageData struct {
-	Filename   string `db:"filename" json:"filename"`
-	Title      string `db:"title" json:"title"`
-	AltText    string `db:"alt_text" json:"alt_text"`
-	Resolution string `db:"resolution" json:"resolution"`
-	Format     string `db:"format" json:"format"`
-}
-
-var ImageSrcStore *store.UrlStore
+var ImageSrcStore *url.Store
 
 func InitImageStore() {
-	ImageSrcStore = store.InitUrlStore()
+	ImageSrcStore = url.InitUrlStore()
 }
 
-func FetchImages(imgInfoChan <-chan model.ImgDownloadInfo, ctx context.Context) {
+func FetchImages(imgInfoChan <-chan model.ImgDownloadInfo, ctx context.Context, tokenStore chan struct{}) {
 	atomicId := uint64(1)
+
 	for imgInfo := range imgInfoChan {
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			go downloadImage(imgInfo.Url, imgInfo.AltText, atomicId)
+			tokenStore <- struct{}{}
+			go downloadImage(imgInfo.Url, imgInfo.AltText, atomicId, tokenStore)
 			atomicId++
 		}
 	}
 }
 
-func downloadImage(url string, altText string, id uint64) {
+func downloadImage(url string, altText string, id uint64, tokenStore <-chan struct{}) {
 	resp, err := http.Get(url)
 	if err != nil {
 		utils.Warn(fmt.Sprintf("ERROR downloading %s: %+v", url, err))
@@ -57,12 +53,11 @@ func downloadImage(url string, altText string, id uint64) {
 	}
 
 	fileFormat := getFileFormat(contentType)
-	title := getTitle(url)
-	//TODO
-	//	Add sql insert
-	//	Add image decoder for metadata
-	imgId := time.Now().Format("2006-01-02_15-01-05")
-	file, err := os.Create(fmt.Sprintf("./uploads/IMG_%s", randId))
+
+	imgTime := time.Now().Format("2006-01-02_15-01-05")
+	filename := fmt.Sprintf("IMG_%s_%d.%s", imgTime, id, fileFormat)
+
+	file, err := os.Create(fmt.Sprintf("../../uploads/%s", filename))
 	if err != nil {
 		utils.Warn(fmt.Sprintf("ERROR creating file for %s: %+v", url, err))
 		return
@@ -73,6 +68,15 @@ func downloadImage(url string, altText string, id uint64) {
 		utils.Warn(fmt.Sprintf("ERROR copying file for %s: %+v", url, err))
 		return
 	}
+
+	metadata := model.ImageData{
+		Filename:   filename,
+		Title:      getTitle(url),
+		AltText:    altText,
+		Resolution: getResolution(file, fileFormat),
+		Format:     fileFormat,
+	}
+
 }
 
 func getFileFormat(contentType string) string {
@@ -80,7 +84,7 @@ func getFileFormat(contentType string) string {
 		return "svg"
 	}
 	if strings.Contains(contentType, "jpeg") {
-		return "jpeg"
+		return "jpg"
 	}
 	if strings.Contains(contentType, "png") {
 		return "png"
@@ -92,6 +96,27 @@ func getFileFormat(contentType string) string {
 		return "webp"
 	}
 	return ""
+}
+
+func getResolution(file *os.File, fileFormat string) string {
+	invalidValue := "N/A"
+	if fileFormat == "jpg" || fileFormat == "png" || fileFormat == "gif" {
+		decode, _, err := image.DecodeConfig(file)
+		if err != nil {
+			utils.Warn(fmt.Sprintf("ERROR decoding config: %+v", err))
+			return invalidValue
+		}
+		return fmt.Sprintf("%d x %d", decode.Width, decode.Height)
+	}
+	if fileFormat == "webp" {
+		decode, err := webp.DecodeConfig(file)
+		if err != nil {
+			utils.Warn(fmt.Sprintf("ERROR decoding config: %+v", err))
+			return invalidValue
+		}
+		return fmt.Sprintf("%d x %d", decode.Width, decode.Height)
+	}
+	return invalidValue
 }
 
 func getTitle(url string) string {
