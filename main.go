@@ -8,45 +8,38 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/nv4n/go-crawler/fetch/crawl"
 	"github.com/nv4n/go-crawler/fetch/img"
+	"github.com/nv4n/go-crawler/model"
 	"log"
+	"net/http"
 	"time"
 )
 
-type Flags struct {
-	Url           *string `validate:"required,url"`
-	ExternalLinks *bool
-	Spa           *bool
-	Timeout       *int  `validate:"min=1,max=10"`
-	Goroutines    *uint `validate:"min=5,max=50"`
-	DepthLevel    *uint `validate:"min=1,max=10"`
-}
-
-var flags Flags
+var parsedFlags model.CliFlags
 var tokenStore chan struct{}
 
 var validate *validator.Validate
 
 func init() {
-	flags = Flags{}
+	parsedFlags = model.CliFlags{}
 	validate = validator.New()
 
-	flags.Url = flag.String("url", "", "URL to be web-crawled for images")
-	flags.Spa = flag.Bool("spa", false, "Is the site SPA (client-rendered)")
-	flags.ExternalLinks = flag.Bool("el", false, "Follow external links")
-	flags.DepthLevel = flag.Uint("dl", 3, "Depth level of image crawling")
-	flags.Timeout = flag.Int("t", 2, "Minutes before timeout the execution")
-	flags.Goroutines = flag.Uint("g", 20, "Maximum goroutines")
+	parsedFlags.Url = flag.String("url", "", "URL to be web-crawled for images")
+	parsedFlags.Spa = flag.Bool("spa", false, "Is the site SPA (client-rendered)")
+	parsedFlags.ExternalLinks = flag.Bool("el", false, "Follow external links")
+	parsedFlags.DepthLevel = flag.Uint("dl", 3, "Depth level of image crawling")
+	parsedFlags.Timeout = flag.Int("t", 2, "Minutes before timeout the execution")
+	parsedFlags.Goroutines = flag.Uint("g", 20, "Maximum goroutines")
 }
 func setupCrawler() (context.Context, context.CancelFunc) {
 	flag.PrintDefaults()
 	flag.Parse()
-	err := validate.Struct(flags)
+	err := validate.Struct(parsedFlags)
 
 	if err != nil {
 		log.Fatalf("Validation errors: %+v", err)
 	}
-	tokenStore = make(chan struct{}, *flags.Goroutines)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*flags.Timeout)*time.Minute)
+	tokenStore = make(chan struct{}, *parsedFlags.Goroutines)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*parsedFlags.Timeout)*time.Minute)
 	return ctx, cancel
 }
 
@@ -57,4 +50,15 @@ func main() {
 
 	img.InitImageStore()
 	crawl.InitPageStore()
+
+	imgUrlChan := make(chan struct{})
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Fatal(http.ListenAndServe(":8080", nil))
+		}
+
+	}
+
 }
