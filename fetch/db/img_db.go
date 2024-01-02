@@ -10,26 +10,39 @@ import (
 	"os"
 )
 
-var Db *sql.DB
+var db *sql.DB
 
 func InitDb() {
 	pass := os.Getenv("DB_PASS")
-	db, err := sql.Open("postgres", fmt.Sprintf("postgresql:postgres@%s/localhost:5432/golang_crawler", pass))
+	initDb, err := sql.Open("postgres", fmt.Sprintf("postgresql:postgres@%s/localhost:5432/golang_crawler", pass))
 	if err != nil {
-		log.Fatalf("Can't open db: %+v", err)
+		log.Fatalf("Can't open initDb: %+v", err)
 	}
-	Db = db
+	db = initDb
 }
 
-func SaveImage(info model.ImageData) {
-	_, err := Db.Exec("INSERT INTO public.image_metadata(filename, title, alt_text, resolution, format) VALUES ($1,$2,$3,$4,$5)", info.Filename, info.Title, info.AltText, info.Resolution, info.Format)
+func dbInitCheck() {
+	if db == nil {
+		log.Fatal("DB is not initialized")
+	}
+}
+func CloseDb() {
+	dbInitCheck()
+	db.Close()
+}
+
+func SaveImage(info model.ImageData, tokenStore <-chan struct{}) {
+	dbInitCheck()
+	_, err := db.Exec("INSERT INTO public.image_metadata(filename, title, alt_text, resolution, format) VALUES ($1,$2,$3,$4,$5)", info.Filename, info.Title, info.AltText, info.Resolution, info.Format)
 	if err != nil {
 		utils.Warn(fmt.Sprintf("ERROR create new log in db: %+v", err))
 	}
+	<-tokenStore
 }
 
 func GetAllImages() []model.ImageData {
-	rows, err := Db.Query("SELECT * FROM public.image_metadata")
+	dbInitCheck()
+	rows, err := db.Query("SELECT * FROM public.image_metadata")
 	if err != nil {
 		utils.Warn(fmt.Sprintf("ERROR fetching all image metadata: %+v", err))
 		return nil
