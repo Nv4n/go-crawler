@@ -27,3 +27,23 @@ func SaveImage(info model.ImageData) {
 		utils.Warn(fmt.Sprintf("ERROR create new log in db: %+v", err))
 	}
 }
+
+func GetAllImages() []model.ImageData {
+	rows, err := Db.Query("SELECT * FROM public.image_metadata")
+	if err != nil {
+		utils.Warn(fmt.Sprintf("ERROR fetching all image metadata: %+v", err))
+		return nil
+	}
+	defer rows.Close()
+	var imageMetadata []model.ImageData
+	for rows.Next() {
+		metadata := model.ImageData{}
+		err = rows.Scan(&metadata.Filename, &metadata.Title, &metadata.AltText, &metadata.Resolution, &metadata.Format)
+		if err != nil {
+			utils.Warn(fmt.Sprintf("ERROR scanning image: %+v", err))
+			return imageMetadata
+		}
+		imageMetadata = append(imageMetadata, metadata)
+	}
+	return imageMetadata
+}
