@@ -3,7 +3,8 @@ package img
 import (
 	"context"
 	"fmt"
-	"github.com/nv4n/go-crawler/fetch/url"
+	"github.com/nv4n/go-crawler/fetch/db"
+	"github.com/nv4n/go-crawler/fetch/token"
 	"github.com/nv4n/go-crawler/model"
 	"github.com/nv4n/go-crawler/utils"
 	"golang.org/x/image/webp"
@@ -12,19 +13,24 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 )
 
-var ImageSrcStore *url.Store
+var imageSrcStore *model.UrlStore
 
 func InitImageStore() {
-	ImageSrcStore = url.InitUrlStore()
+	imageSrcStore = model.InitUrlStore()
 }
 
-func FetchImages(imgInfoChan <-chan model.ImgDownloadInfo, ctx context.Context, tokenStore chan struct{}) {
+func FetchImages(imgInfoChan <-chan model.ImgDownloadInfo, ctx context.Context, tokenStore chan<- struct{}) {
+	if imageSrcStore == nil {
+		log.Fatal("Image URL store is not initialized")
+	}
+
 	atomicId := uint64(1)
 
 	for imgInfo := range imgInfoChan {
@@ -33,13 +39,17 @@ func FetchImages(imgInfoChan <-chan model.ImgDownloadInfo, ctx context.Context, 
 			return
 		default:
 			tokenStore <- struct{}{}
-			go downloadImage(imgInfo.Url, imgInfo.AltText, atomicId, tokenStore)
+			go downloadImage(imgInfo.Url, imgInfo.AltText, atomicId, token.GetReadTokenChan())
 			atomicId++
 		}
 	}
 }
 
 func downloadImage(url string, altText string, id uint64, tokenStore <-chan struct{}) {
+	if imageSrcStore.Contains(url) {
+		return
+	}
+
 	resp, err := http.Get(url)
 	if err != nil {
 		utils.Warn(fmt.Sprintf("ERROR downloading %s: %+v", url, err))
@@ -51,8 +61,12 @@ func downloadImage(url string, altText string, id uint64, tokenStore <-chan stru
 		utils.Warn(fmt.Sprintf("No suitable content-type for %s", url))
 		return
 	}
+	imageSrcStore.Add(url)
 
 	fileFormat := getFileFormat(contentType)
+	if fileFormat == "" {
+		utils.Warn(fmt.Sprintf("ERROR no suitable img format for: %s", url))
+	}
 
 	imgTime := time.Now().Format("2006-01-02_15-01-05")
 	filename := fmt.Sprintf("IMG_%s_%d.%s", imgTime, id, fileFormat)
@@ -76,7 +90,10 @@ func downloadImage(url string, altText string, id uint64, tokenStore <-chan stru
 		Resolution: getResolution(file, fileFormat),
 		Format:     fileFormat,
 	}
-
+	<-tokenStore
+	tokenStoreSend := token.GetWriteTokenChan()
+	tokenStoreSend <- struct{}{}
+	go db.SaveImage(metadata, tokenStore)
 }
 
 func getFileFormat(contentType string) string {
