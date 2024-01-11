@@ -1,6 +1,7 @@
-package model
+package image
 
 type ImgDownloadInfo struct {
-	Url     string
-	AltText string
+	RequestUrl string
+	Url        string
+	AltText    string
 }

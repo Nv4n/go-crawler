@@ -1,6 +1,6 @@
-package model
+package image
 
-type ImageData struct {
+type DbMetadata struct {
 	Filename   string `db:"filename" json:"filename"`
 	Title      string `db:"title" json:"title"`
 	AltText    string `db:"alt_text" json:"alt_text"`
