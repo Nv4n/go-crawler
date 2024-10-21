@@ -4,9 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	_ "github.com/PuerkitoBio/goquery"
-	_ "github.com/benjaminestes/robots/v2"
-	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
 	"github.com/go-playground/validator/v10"
 	"github.com/nv4n/go-crawler/fetch/crawl"
 	"github.com/nv4n/go-crawler/fetch/db"
@@ -14,6 +11,7 @@ import (
 	"github.com/nv4n/go-crawler/fetch/token"
 	"github.com/nv4n/go-crawler/model"
 	"github.com/nv4n/go-crawler/model/image"
+	"html/template"
 	"log"
 	"net/http"
 	"time"
@@ -64,20 +62,20 @@ func main() {
 	tokenStoreSend <- struct{}{}
 	go crawl.CrawlPage(*model.ParsedFlags.Url, 1, imgDownloadDataChan, ctx, model.RobotsInfo{})
 	go img.FetchImages(imgDownloadDataChan, ctx, tokenStoreSend)
-	for {
-		select {
-		case <-ctx.Done():
-			fmt.Println("Images downloaded")
-			return
-			//log.Fatal(http.ListenAndServe(":8080", nil))
-		}
-	}
 
+	staticFs := http.FileServer(http.Dir("./static"))
+	uploadsFs := http.FileServer(http.Dir("./uploads"))
+	http.Handle("/uploads/", http.StripPrefix("/uploads/", uploadsFs))
+	http.Handle("/static/", http.StripPrefix("/static/", staticFs))
 	http.HandleFunc("/", handleImagePage)
+	fmt.Println("Listening to :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
-
 }
 
 func handleImagePage(w http.ResponseWriter, _ *http.Request) {
-
+	tmpls := template.Must(template.ParseFiles("views/index.go.html", "views/image.go.html"))
+	err := tmpls.ExecuteTemplate(w, "Base", db.GetAllImages())
+	if err != nil {
+		w.WriteHeader(500)
+	}
 }

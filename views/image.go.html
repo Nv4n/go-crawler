@@ -1,0 +1,85 @@
+{{block "Image" .}}
+    {{$filename:=print "/uploads/" .Filename}}
+    <div href="#" class="block rounded-lg p-4 shadow-sm shadow-indigo-100">
+        <img
+                alt={{.AltText}}
+                src={{$filename}}
+                class="h-56 w-full rounded-md object-contain"
+        />
+
+        <div class="mt-2">
+            <dl>
+                <div>
+                    <dt class="sr-only">Filename</dt>
+
+                    <dd class="text-sm text-gray-500">{{.Filename}}</dd>
+                </div>
+
+                <div>
+                    <dt class="sr-only">Title</dt>
+
+                    <dd class="font-medium">{{.Title}}</dd>
+                </div>
+            </dl>
+
+            <div class="mt-6 flex items-center gap-8 text-xs">
+                <div class="sm:inline-flex sm:shrink-0 sm:items-center sm:gap-2">
+
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-700" width="24" height="24"
+                         viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
+                         stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M4 16v-6a2 2 0 1 1 4 0v6"/>
+                        <path d="M4 13h4"/>
+                        <path d="M11 8v8h4"/>
+                        <path d="M16 8h4"/>
+                        <path d="M18 8v8"/>
+                    </svg>
+
+                    <div class="mt-1.5 sm:mt-0">
+                        <p class="text-gray-500">Alt text</p>
+
+                        <p class="font-medium">{{.AltText}}</p>
+                    </div>
+                </div>
+
+                <div class="sm:inline-flex sm:shrink-0 sm:items-center sm:gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-700" width="24" height="24"
+                         viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
+                         stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M3 5h11"/>
+                        <path d="M12 7l2 -2l-2 -2"/>
+                        <path d="M5 3l-2 2l2 2"/>
+                        <path d="M19 10v11"/>
+                        <path d="M17 19l2 2l2 -2"/>
+                        <path d="M21 12l-2 -2l-2 2"/>
+                        <path d="M3 10m0 2a2 2 0 0 1 2 -2h7a2 2 0 0 1 2 2v7a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2z"/>
+                    </svg>
+                    <div class="mt-1.5 sm:mt-0">
+                        <p class="text-gray-500">Resolution</p>
+
+                        <p class="font-medium">{{.Resolution}}</p>
+                    </div>
+                </div>
+
+                <div class="sm:inline-flex sm:shrink-0 sm:items-center sm:gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-700" width="24" height="24"
+                         viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
+                         stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+                        <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                        <path d="M11 14h1v4h1"/>
+                        <path d="M12 11h.01"/>
+                    </svg>
+                    <div class="mt-1.5 sm:mt-0">
+                        <p class="text-gray-500">Format</p>
+
+                        <p class="font-medium">{{.Format}}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{{end}}

@@ -25,11 +25,14 @@ func CrawlPage(url string, depth uint, imgChan chan<- image.ImgDownloadInfo, ctx
 	log.Printf("%s url is being crawled\n", url)
 	select {
 	case <-ctx.Done():
+		<-token.GetReadTokenChan()
 		return
 	default:
 	}
 
 	if !canCrawl(url, depth) {
+		<-token.GetReadTokenChan()
+
 		return
 	}
 	pageStore.Add(url)
@@ -41,28 +44,40 @@ func CrawlPage(url string, depth uint, imgChan chan<- image.ImgDownloadInfo, ctx
 	}
 
 	if rinfo.URL == "" {
+		<-token.GetReadTokenChan()
+
 		return
 	}
 	if rinfo.URL != "" && rinfo.RobotsTester == nil {
 		pageStore.Add(rinfo.URL)
+		<-token.GetReadTokenChan()
+
 		return
 	}
 
 	if ok := isRobotsValid(url, rinfo); !ok {
+		<-token.GetReadTokenChan()
+
 		return
 	}
 
 	if !rinfo.RobotsTester.Test("Go-http-client/1.1", url) {
+		<-token.GetReadTokenChan()
+
 		return
 	}
 
 	resp, err := http.Get(url)
 	if err != nil {
 		utils.Warn(fmt.Sprintf("ERROR fetching HTML for %s: %+v", url, err))
+		<-token.GetReadTokenChan()
+
 		return
 	}
 	if resp.StatusCode != 200 {
 		utils.Warn(fmt.Sprintf("HTTP Error %d: %s", resp.StatusCode, resp.Status))
+		<-token.GetReadTokenChan()
+
 		return
 	}
 	log.Println("Got html page")
@@ -71,6 +86,8 @@ func CrawlPage(url string, depth uint, imgChan chan<- image.ImgDownloadInfo, ctx
 	reader, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		utils.Warn(fmt.Sprintf("ERROR parsing HTML document: %+v", err))
+		<-token.GetReadTokenChan()
+
 		return
 	}
 	log.Println("Sending images")
@@ -89,17 +106,15 @@ func CrawlPage(url string, depth uint, imgChan chan<- image.ImgDownloadInfo, ctx
 func crawlNextPages(reader *goquery.Document, ctx context.Context, depth uint, imgChan chan<- image.ImgDownloadInfo, rinfo model.RobotsInfo) {
 	tokenStore := token.GetWriteTokenChan()
 	reader.Find("a[href]").Each(func(i int, selection *goquery.Selection) {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case tokenStore <- struct{}{}:
-				href := selection.AttrOr("href", "")
-				if href != "" {
-					CrawlPage(href, depth+1, imgChan, ctx, rinfo)
-				}
-				time.Sleep(3 * time.Second)
+		select {
+		case <-ctx.Done():
+			return
+		case tokenStore <- struct{}{}:
+			href := selection.AttrOr("href", "")
+			if href != "" {
+				go CrawlPage(href, depth+1, imgChan, ctx, rinfo)
 			}
+			time.Sleep(3 * time.Second)
 		}
 	})
 }
@@ -107,7 +122,7 @@ func crawlNextPages(reader *goquery.Document, ctx context.Context, depth uint, i
 func sendImageData(url string, ctx context.Context, reader *goquery.Document, imgChan chan<- image.ImgDownloadInfo) {
 	reader.Find("img[src]").Each(func(i int, selection *goquery.Selection) {
 		src := selection.AttrOr("src", "")
-		altText := selection.AttrOr("altText", "N/A")
+		altText := selection.AttrOr("alt", "N/A")
 		if src != "" {
 			select {
 			case <-ctx.Done():

@@ -63,12 +63,15 @@ func downloadImage(requestUrl string, url string, altText string, id uint64, tok
 	imageSrcStore.Add(url)
 	if err != nil {
 		utils.Warn(fmt.Sprintf("ERROR downloading %s: %+v", url, err))
+		<-tokenStore
 		return
 	}
 	defer resp.Body.Close()
 	contentType := resp.Header.Get("Content-Type")
 	if contentType == "" {
 		utils.Warn(fmt.Sprintf("No suitable content-type for %s", url))
+		<-tokenStore
+
 		return
 	}
 	imageSrcStore.Add(url)
@@ -76,6 +79,8 @@ func downloadImage(requestUrl string, url string, altText string, id uint64, tok
 	fileFormat := getFileFormat(contentType)
 	if fileFormat == "" {
 		utils.Warn(fmt.Sprintf("ERROR no suitable img format for: %s", url))
+		<-tokenStore
+
 		return
 	}
 
@@ -85,12 +90,16 @@ func downloadImage(requestUrl string, url string, altText string, id uint64, tok
 	file, err := os.Create(fmt.Sprintf("uploads/%s", filename))
 	if err != nil {
 		utils.Warn(fmt.Sprintf("ERROR creating file for %s: %+v", url, err))
+		<-tokenStore
+
 		return
 	}
 	defer file.Close()
 	_, err = io.Copy(file, resp.Body)
 	if err != nil {
 		utils.Warn(fmt.Sprintf("ERROR copying file for %s: %+v", url, err))
+		<-tokenStore
+		
 		return
 	}
 

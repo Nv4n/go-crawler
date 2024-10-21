@@ -1,0 +1,10 @@
+{
+  "name": "go-crawler",
+  "packageManager": "yarn@3.6.0",
+  "dependencies": {
+    "tailwindcss": "^3.4.1"
+  },
+  "scripts": {
+    "tcss": "tailwindcss -i index.css -o ./static/index.css --watch"
+  }
+}
