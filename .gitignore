@@ -1,6 +1,6 @@
 # File created using '.gitignore Generator' for Visual Studio Code: https://bit.ly/vscode-gig
-# Created by https://www.toptal.com/developers/gitignore/api/go,goland+all,node,yarn
-# Edit at https://www.toptal.com/developers/gitignore?templates=go,goland+all,node,yarn
+# Created by https://www.toptal.com/developers/gitignore/api/yarn,node,goland+all,go
+# Edit at https://www.toptal.com/developers/gitignore?templates=yarn,node,goland+all,go
 
 ### Go ###
 # If you prefer the allow list template instead of the deny list, see community template:
@@ -270,7 +270,7 @@ dist
 # and uncomment the following lines
 # .pnp.*
 
-# End of https://www.toptal.com/developers/gitignore/api/go,goland+all,node,yarn
+# End of https://www.toptal.com/developers/gitignore/api/yarn,node,goland+all,go
 
 # Custom rules (everything added below won't be overriden by 'Generate .gitignore File' if you use 'Update' option)
 

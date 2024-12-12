@@ -26,6 +26,7 @@ func ExampleImgUpload() {
 	dbpkg.SaveImage(exampleInfo, tokenStore)
 	time.Sleep(2 * time.Second)
 	imgs := dbpkg.GetAllImages()
+	imgs[len(imgs)-1].Id = 0
 	fmt.Println(imgs[len(imgs)-1])
 	affected, err := dbpkg.DeleteLastRow()
 	if err != nil {
@@ -33,6 +34,6 @@ func ExampleImgUpload() {
 	}
 	fmt.Println(affected)
 	// Output:
-	// {Filename Title N/A 90x180 JPEG}
+	// {0 Filename Title N/A 90x180 JPEG}
 	// 1
 }
