@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/a-h/templ"
 	"github.com/go-playground/validator/v10"
 	"github.com/nv4n/go-crawler/fetch/crawl"
 	"github.com/nv4n/go-crawler/fetch/db"
@@ -11,7 +12,7 @@ import (
 	"github.com/nv4n/go-crawler/fetch/token"
 	"github.com/nv4n/go-crawler/model"
 	"github.com/nv4n/go-crawler/model/image"
-	"html/template"
+	"github.com/nv4n/go-crawler/views"
 	"log"
 	"net/http"
 	"time"
@@ -22,7 +23,6 @@ var validate *validator.Validate
 func init() {
 	model.ParsedFlags = model.CliFlags{}
 	validate = validator.New()
-
 	model.ParsedFlags.Url = flag.String("url", "", "URL to be web-crawled for images")
 	model.ParsedFlags.Spa = flag.Bool("spa", false, "Is the site SPA (client-rendered)")
 	model.ParsedFlags.ExternalLinks = flag.Bool("el", false, "Follow external links")
@@ -72,10 +72,22 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func handleImagePage(w http.ResponseWriter, _ *http.Request) {
-	tmpls := template.Must(template.ParseFiles("views/index.go.html", "views/image.go.html"))
-	err := tmpls.ExecuteTemplate(w, "Base", db.GetAllImages())
-	if err != nil {
-		w.WriteHeader(500)
-	}
+func handleImagePage(w http.ResponseWriter, r *http.Request) {
+	//TODO REMOVE THEM FROM HERE
+	//	IT WILL CAUSE INFINITE GO ROUTINE CREATION
+	images := db.GetAllImages()
+	set := make(map[int]struct{})
+	imageChan := make(chan image.DbMetadata)
+	go func() {
+		defer close(imageChan)
+		for _, img := range images {
+			if _, ok := set[img.Id]; !ok {
+				set[img.Id] = struct{}{}
+				imageChan <- img
+			}
+			time.Sleep(2 * time.Second)
+		}
+	}()
+	templ.Handler(views.Page(imageChan), templ.WithStreaming()).ServeHTTP(w, r)
+	views.Page(imageChan)
 }
