@@ -14,7 +14,7 @@ templ Page(imgs <-chan image.DbMetadata) {
 		<body class="dark:bg-gray-900">
 			for img := range imgs {
 				@templ.Flush() {
-					{ Image(img) }
+					@Image(img)
 				}
 			}
 		</body>
