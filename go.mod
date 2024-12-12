@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.1
+	github.com/a-h/templ v0.2.793
 	github.com/benjaminestes/robots/v2 v2.0.5
 	github.com/go-playground/validator/v10 v10.16.0
 	github.com/lib/pq v1.10.9
@@ -11,7 +12,6 @@ require (
 )
 
 require (
-	github.com/a-h/templ v0.2.793 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/benjaminestes/robots v2.0.4+incompatible // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect

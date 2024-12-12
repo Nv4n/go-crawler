@@ -1,6 +1,7 @@
 package image
 
 type DbMetadata struct {
+	Id         int    `db:"id" json:"id"`
 	Filename   string `db:"filename" json:"filename"`
 	Title      string `db:"title" json:"title"`
 	AltText    string `db:"alt_text" json:"alt_text"`

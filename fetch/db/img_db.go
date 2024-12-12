@@ -56,7 +56,7 @@ func SaveImage(info image.DbMetadata, tokenStore <-chan struct{}) {
 
 func GetAllImages() []image.DbMetadata {
 	dbInitCheck()
-	rows, err := db.Query("SELECT filename,title,alt_text,resolution,format FROM public.image_metadata")
+	rows, err := db.Query("SELECT * FROM public.image_metadata")
 	if err != nil {
 		utils.Warn(fmt.Sprintf("ERROR fetching all image metadata: %+v", err))
 		return nil
@@ -65,7 +65,7 @@ func GetAllImages() []image.DbMetadata {
 	var imageMetadata []image.DbMetadata
 	for rows.Next() {
 		metadata := image.DbMetadata{}
-		err = rows.Scan(&metadata.Filename, &metadata.Title, &metadata.AltText, &metadata.Resolution, &metadata.Format)
+		err = rows.Scan(&metadata.Id, &metadata.Filename, &metadata.Title, &metadata.AltText, &metadata.Resolution, &metadata.Format)
 		if err != nil {
 			utils.Warn(fmt.Sprintf("ERROR scanning image: %+v", err))
 			return imageMetadata
