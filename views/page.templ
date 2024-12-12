@@ -1,0 +1,22 @@
+package views
+
+import "github.com/nv4n/go-crawler/model/image"
+
+templ Page(imgs <-chan image.DbMetadata) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>Budget Tracker</title>
+			<link href="/static/index.css" rel="stylesheet"/>
+		</head>
+		<body class="dark:bg-gray-900">
+			for img := range imgs {
+				@templ.Flush() {
+					{ Image(img) }
+				}
+			}
+		</body>
+	</html>
+}
