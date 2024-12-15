@@ -61,24 +61,30 @@ func CrawlPage(url string, depth uint, imgChan chan<- image.ImgDownloadInfo, ctx
 	}
 
 	if rinfo.URL == "" {
+		utils.Warn("Can't crawl no robots URL")
 		<-token.GetReadTokenChan()
 
 		return
 	}
 	if rinfo.URL != "" && rinfo.RobotsTester == nil {
-		pageStore.Add(rinfo.URL)
+		utils.Warn("Can't crawl no robots tester")
+
+		crawler.PageStore.Add(rinfo.URL)
 		<-token.GetReadTokenChan()
 
 		return
 	}
 
 	if ok := isRobotsValid(url, rinfo); !ok {
+		utils.Warn("Can't crawl  isRobotsValid")
+
 		<-token.GetReadTokenChan()
 
 		return
 	}
 
 	if !rinfo.RobotsTester.Test("Go-http-client/1.1", url) {
+		utils.Warn("Can't crawl RobotsTester.Test")
 		<-token.GetReadTokenChan()
 
 		return
@@ -171,13 +177,16 @@ func isRobotsValid(url string, rinfo model.RobotsInfo) bool {
 		utils.Warn(fmt.Sprintf("ERROR parsing url %s: %+v", url, err))
 		return false
 	}
-	crawlUrlDomain := fmt.Sprintf("%s://%s", parse.Host, parse.Host)
+	crawlUrlDomain := fmt.Sprintf("%s://%s", parse.Scheme, parse.Host)
+	utils.Warn(crawlUrlDomain)
 	parse, err = urlpkg.Parse(rinfo.URL)
 	if err != nil {
 		utils.Warn(fmt.Sprintf("ERROR parsing url %s: %+v", rinfo.URL, err))
 		return false
 	}
-	robotUrlDomain := fmt.Sprintf("%s://%s", parse.Host, parse.Host)
+	robotUrlDomain := fmt.Sprintf("%s://%s", parse.Scheme, parse.Host)
+
+	utils.Warn(fmt.Sprintf("'%s' !== '%s'", crawlUrlDomain, robotUrlDomain))
 	return crawlUrlDomain == robotUrlDomain
 }
 
