@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/benjaminestes/robots/v2"
+	"github.com/go-rod/rod"
 	"github.com/nv4n/go-crawler/fetch/token"
 	"github.com/nv4n/go-crawler/model"
 	"github.com/nv4n/go-crawler/model/image"
@@ -15,10 +16,24 @@ import (
 	"time"
 )
 
-var pageStore *model.UrlStore
+type Crawler struct {
+	PageStore *model.UrlStore
+	Browser   *rod.Browser
+}
 
-func InitPageStore() {
-	pageStore = model.InitUrlStore()
+var crawler Crawler
+
+func Close() {
+	defer crawler.Browser.MustClose()
+	for _, p := range crawler.Browser.MustPages() {
+		p.MustClose()
+	}
+}
+
+func InitCrawler() {
+	crawler.PageStore = model.InitUrlStore()
+	crawler.Browser = rod.New().MustConnect()
+
 }
 
 func CrawlPage(url string, depth uint, imgChan chan<- image.ImgDownloadInfo, ctx context.Context, rinfo model.RobotsInfo) {
@@ -31,11 +46,13 @@ func CrawlPage(url string, depth uint, imgChan chan<- image.ImgDownloadInfo, ctx
 	}
 
 	if !canCrawl(url, depth) {
+		//TODO REMOVE
+		utils.Warn("Can't crawl in canCrawl")
 		<-token.GetReadTokenChan()
 
 		return
 	}
-	pageStore.Add(url)
+	crawler.PageStore.Add(url)
 
 	if rinfo.RobotsTester == nil {
 		r, url := getRobots(url)
@@ -135,14 +152,14 @@ func sendImageData(url string, ctx context.Context, reader *goquery.Document, im
 }
 
 func canCrawl(url string, depth uint) bool {
-	if pageStore == nil {
+	if crawler.PageStore == nil {
 		log.Fatal("URL HTML page store is not initialized")
 	}
 	if depth > *model.ParsedFlags.DepthLevel {
 		return false
 	}
 
-	if pageStore.Contains(url) {
+	if crawler.PageStore.Contains(url) {
 		return false
 	}
 	return true

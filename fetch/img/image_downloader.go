@@ -99,7 +99,7 @@ func downloadImage(requestUrl string, url string, altText string, id uint64, tok
 	if err != nil {
 		utils.Warn(fmt.Sprintf("ERROR copying file for %s: %+v", url, err))
 		<-tokenStore
-		
+
 		return
 	}
 
