@@ -19,6 +19,7 @@ import (
 )
 
 var validate *validator.Validate
+var imgDownloadDataChan chan image.ImgDownloadInfo
 
 func init() {
 	model.ParsedFlags = model.CliFlags{}
@@ -50,7 +51,7 @@ func main() {
 
 	token.InitTokenStore(*model.ParsedFlags.Goroutines)
 	img.InitImageStore()
-	crawl.InitPageStore()
+	crawl.InitCrawler()
 	db.InitDb()
 	imgDownloadDataChan := make(chan image.ImgDownloadInfo)
 
