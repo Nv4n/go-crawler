@@ -115,6 +115,7 @@ func CrawlPage(url string, depth uint, imgChan chan<- image.ImgDownloadInfo, ctx
 	}
 	log.Println("Sending images")
 	go sendImageData(url, ctx, reader, imgChan)
+	//TODO
 	//if *model.ParsedFlags.ExternalLinks {
 	//	reader.Find("link[rel=\"stylesheet\"").Each(func(i int, selection *goquery.Selection) {
 	//

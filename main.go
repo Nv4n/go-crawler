@@ -39,7 +39,8 @@ func setupCrawler() (context.Context, context.CancelFunc) {
 		log.Fatalf("Validation errors: %+v", err)
 	}
 	token.InitTokenStore(*model.ParsedFlags.Goroutines)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*model.ParsedFlags.Timeout)*time.Minute)
+	//ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*model.ParsedFlags.Timeout)*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	return ctx, cancel
 }
 
@@ -81,6 +82,7 @@ func handleImagePage(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		defer close(imageChan)
 		for _, img := range images {
+			//TODO TRY TO REFRESH PAGE MULTIPLE TIMES
 			if _, ok := set[img.Id]; !ok {
 				set[img.Id] = struct{}{}
 				imageChan <- img

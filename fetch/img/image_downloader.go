@@ -54,11 +54,12 @@ func downloadImage(requestUrl string, url string, altText string, id uint64, tok
 	if imageSrcStore.Contains(url) {
 		return
 	}
-	match, err := regexp.Match("(http|https)", []byte(url))
+	match, err := regexp.Match("^(http|https|//cdn)", []byte(url))
 	if err != nil || !match {
 		url = fmt.Sprintf("%s/%s", requestUrl, url)
+	} else if ok := strings.HasPrefix(url, "//cdn"); ok {
+		url = fmt.Sprintf("%s%s", "https:", url)
 	}
-
 	resp, err := http.Get(url)
 	imageSrcStore.Add(url)
 	if err != nil {
