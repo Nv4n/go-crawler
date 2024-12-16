@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/benjaminestes/robots/v2"
 	"github.com/go-rod/rod"
-	"github.com/go-rod/rod/lib/proto"
 	"github.com/nv4n/go-crawler/fetch/token"
 	"github.com/nv4n/go-crawler/model"
 	"github.com/nv4n/go-crawler/model/image"
@@ -32,7 +31,12 @@ func Close() {
 
 func InitCrawler() {
 	crawler.PageStore = model.InitUrlStore()
-	crawler.Browser = rod.New().MustConnect()
+
+	crawler.Browser = rod.New().
+		ControlURL("ws://127.0.0.1:9222/devtools/browser/9fc09774-ebe8-4e5b-83ea-45b62e531f6b").
+		MustConnect()
+
+	//crawler.Browser = rod.New().MustConnect()
 
 }
 
@@ -88,22 +92,26 @@ func CrawlPage(url string, depth uint, imgChan chan<- image.ImgDownloadInfo, ctx
 
 		return
 	}
-	e := proto.NetworkResponseReceived{}
-	page := crawler.Browser.MustPage().MustWindowFullscreen()
-	defer page.MustClose()
-	wait := page.WaitEvent(&e)
-	page.MustNavigate(url)
-	wait()
+	//e := proto.NetworkResponseReceived{}
+	page := crawler.Browser.MustPage(url)
+	png := page.MustWaitLoad().MustScreenshot("a.png")
 
-	if e.Response.Status != 200 {
-		utils.Warn(fmt.Sprintf("HTTP Error %d: %s", e.Response.Status, e.Response.StatusText))
-		<-token.GetReadTokenChan()
+	utils.Warn(string(png))
 
-		return
-	}
+	//wait := page.WaitEvent(&e)
+	//page.MustNavigate(url)
+	//wait()
+
+	//if e.Response.Status != 200 {
+	//	page.MustClose()
+	//	utils.Warn(fmt.Sprintf("HTTP Error %d: %s", e.Response.Status, e.Response.StatusText))
+	//	<-token.GetReadTokenChan()
+	//
+	//	return
+	//}
 	log.Println("Got html page")
 
-	page.MustWaitStable()
+	page.MustWaitLoad()
 	imgs := page.MustElements("img[src]")
 
 	log.Println("Sending images")
@@ -121,8 +129,12 @@ func CrawlPage(url string, depth uint, imgChan chan<- image.ImgDownloadInfo, ctx
 }
 
 func crawlNextPages(page *rod.Page, ctx context.Context, depth uint, imgChan chan<- image.ImgDownloadInfo, rinfo model.RobotsInfo) {
+	defer page.MustClose()
 	tokenStore := token.GetWriteTokenChan()
-	anchors := page.MustElements("a[href]")
+	anchors, err := page.Elements("a")
+	if err != nil {
+		log.Fatal(err)
+	}
 	for _, anchor := range anchors {
 		select {
 		case <-ctx.Done():
@@ -142,11 +154,13 @@ func sendImageData(url string, ctx context.Context, imgs rod.Elements, imgChan c
 	for _, img := range imgs {
 		src, err := img.Attribute("src")
 		if err != nil {
-			*src = ""
+			empty := ""
+			src = &empty
 		}
 		altText, err := img.Attribute("alt")
 		if err != nil {
-			*altText = "N/A"
+			na := "N/A"
+			altText = &na
 		}
 		if *src != "" {
 			select {
@@ -180,7 +194,6 @@ func isRobotsValid(url string, rinfo model.RobotsInfo) bool {
 		return false
 	}
 	crawlUrlDomain := fmt.Sprintf("%s://%s", parse.Scheme, parse.Host)
-	utils.Warn(crawlUrlDomain)
 	parse, err = urlpkg.Parse(rinfo.URL)
 	if err != nil {
 		utils.Warn(fmt.Sprintf("ERROR parsing url %s: %+v", rinfo.URL, err))
@@ -188,7 +201,6 @@ func isRobotsValid(url string, rinfo model.RobotsInfo) bool {
 	}
 	robotUrlDomain := fmt.Sprintf("%s://%s", parse.Scheme, parse.Host)
 
-	utils.Warn(fmt.Sprintf("'%s' !== '%s'", crawlUrlDomain, robotUrlDomain))
 	return crawlUrlDomain == robotUrlDomain
 }
 

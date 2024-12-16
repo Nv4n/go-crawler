@@ -55,6 +55,7 @@ func main() {
 	db.InitDb()
 	imgDownloadDataChan := make(chan image.ImgDownloadInfo)
 
+	defer crawl.Close()
 	defer token.Close()
 	defer db.CloseDb()
 	defer close(imgDownloadDataChan)
