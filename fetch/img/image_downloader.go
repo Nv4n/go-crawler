@@ -34,12 +34,14 @@ func FetchImages(imgInfoChan <-chan modelImg.ImgDownloadInfo, ctx context.Contex
 	}
 
 	atomicId := uint64(1)
-
+	fmt.Println("FETCHING STARTED")
 	for {
 		select {
 		case <-ctx.Done():
+			utils.Warn("We are done downloading")
 			return
 		case imgInfo, ok := <-imgInfoChan:
+			fmt.Println("INSIDE DOWNLOAD")
 			if ok {
 				tokenStore <- struct{}{}
 				go downloadImage(imgInfo.RequestUrl, imgInfo.Url, imgInfo.AltText, atomicId, token.GetReadTokenChan())

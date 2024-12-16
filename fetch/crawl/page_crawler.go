@@ -96,27 +96,17 @@ func CrawlPage(url string, depth uint, imgChan chan<- image.ImgDownloadInfo, ctx
 		return
 	}
 	//e := proto.NetworkResponseReceived{}
-	page := crawler.Browser.MustPage(url)
-	png := page.MustWaitLoad().MustScreenshot("a.png")
+	page := crawler.Browser.MustIncognito().MustPage(url)
+	page.MustWaitDOMStable().MustScreenshot("a.png")
+	btn, _ := page.ElementR("button", "/accept\\sall\\scookies/i")
+	if btn != nil {
+		btn.MustWaitVisible().MustClick()
+	}
 
-	utils.Warn(string(png))
-
-	//wait := page.WaitEvent(&e)
-	//page.MustNavigate(url)
-	//wait()
-
-	//if e.Response.Status != 200 {
-	//	page.MustClose()
-	//	utils.Warn(fmt.Sprintf("HTTP Error %d: %s", e.Response.Status, e.Response.StatusText))
-	//	<-token.GetReadTokenChan()
-	//
-	//	return
-	//}
+	page.MustWaitDOMStable().MustScreenshot("b.png")
 	log.Println("Got html page")
-
-	page.MustWaitLoad()
 	imgs := page.MustElements("img[src]")
-
+	log.Println(imgs)
 	log.Println("Sending images")
 	go sendImageData(url, ctx, imgs, imgChan)
 	//TODO
@@ -165,11 +155,16 @@ func sendImageData(url string, ctx context.Context, imgs rod.Elements, imgChan c
 			na := "N/A"
 			altText = &na
 		}
+		fmt.Println(*src)
+		fmt.Println(*altText)
+		imgData := image.ImgDownloadInfo{Url: *src, AltText: *altText, RequestUrl: url}
+		fmt.Println(imgData)
 		if *src != "" {
 			select {
 			case <-ctx.Done():
+				utils.Warn("We are done sending images")
 				return
-			case imgChan <- image.ImgDownloadInfo{Url: *src, AltText: *altText, RequestUrl: url}:
+			case imgChan <- imgData:
 				log.Printf("Sending image %s\n", *src)
 			}
 		}

@@ -40,8 +40,7 @@ func setupCrawler() (context.Context, context.CancelFunc) {
 		log.Fatalf("Validation errors: %+v", err)
 	}
 	token.InitTokenStore(*model.ParsedFlags.Goroutines)
-	//ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*model.ParsedFlags.Timeout)*time.Minute)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*model.ParsedFlags.Timeout)*time.Minute)
 	return ctx, cancel
 }
 
@@ -53,7 +52,7 @@ func main() {
 	img.InitImageStore()
 	crawl.InitCrawler()
 	db.InitDb()
-	imgDownloadDataChan := make(chan image.ImgDownloadInfo)
+	imgDownloadDataChan = make(chan image.ImgDownloadInfo)
 
 	defer crawl.Close()
 	defer token.Close()
@@ -83,13 +82,12 @@ func handleImagePage(w http.ResponseWriter, r *http.Request) {
 	imageChan := make(chan image.DbMetadata)
 	go func() {
 		defer close(imageChan)
-		for _, img := range images {
+		for _, imgData := range images {
 			//TODO TRY TO REFRESH PAGE MULTIPLE TIMES
-			if _, ok := set[img.Id]; !ok {
-				set[img.Id] = struct{}{}
-				imageChan <- img
+			if _, ok := set[imgData.Id]; !ok {
+				set[imgData.Id] = struct{}{}
+				imageChan <- imgData
 			}
-			time.Sleep(2 * time.Second)
 		}
 	}()
 	templ.Handler(views.Page(imageChan), templ.WithStreaming()).ServeHTTP(w, r)
