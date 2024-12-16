@@ -8,3 +8,9 @@ type DbMetadata struct {
 	Resolution string `db:"resolution" json:"resolution"`
 	Format     string `db:"format" json:"format"`
 }
+
+type DbFilter struct {
+	Title   string `db:"title" json:"title"`
+	AltText string `db:"alt_text" json:"alt_text"`
+	Format  string `db:"format" json:"format"`
+}

@@ -1,28 +1,56 @@
 package views
 
 templ Filter() {
-	<h1>Filter Images</h1>
-	<form action="/filter" method="get">
-		<br/>
-		<br/>
-		<label for="title">Title:</label>
-		<input type="text" id="title" name="title"/>
-		<br/>
-		<br/>
-		<label for="alt_text">Alt Text:</label>
-		<input type="text" id="alt_text" name="alt_text"/>
-		<br/>
-		<br/>
-		<label for="width">Width:</label>
-		<input type="number" id="width" name="width"/>
-		<label for="height">Height</label>
-		<input type="number" id="height" name="height"/>
-		<br/>
-		<br/>
-		<label for="format">Format:</label>
-		<input type="text" id="format" name="format"/>
-		<br/>
-		<br/>
-		<button type="submit">Filter</button>
-	</form>
+	<div class="mx-auto max-w-screen-xl px-4 py-16 sm:px-6 lg:px-8">
+		<div class="mx-auto max-w-lg">
+			<form action="/filter" method="get" class="mb-0 mt-6 space-y-4 rounded-lg p-4 shadow-lg sm:p-6 lg:p-8">
+				<p class="text-center text-lg font-medium">Filter Images</p>
+				<label
+					for="title"
+					class="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600"
+				>
+					<span class="text-xs font-medium text-gray-700">Title </span>
+					<input
+						type="text"
+						id="title"
+						name="title"
+						placeholder="Enter title"
+						class="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+					/>
+				</label>
+				<label
+					for="alt_text"
+					class="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600"
+				>
+					<span class="text-xs font-medium text-gray-700">Alt text</span>
+					<input
+						type="text"
+						id="alt_text"
+						name="alt_text"
+						placeholder="Enter Alt text"
+						class="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+					/>
+				</label>
+				<label
+					for="format"
+					class="block overflow-hidden rounded-md border border-gray-200 px-3 py-2 shadow-sm focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600"
+				>
+					<span class="text-xs font-medium text-gray-700">Format </span>
+					<input
+						type="text"
+						id="format"
+						name="format"
+						placeholder="Enter format"
+						class="mt-1 w-full border-none p-0 focus:border-transparent focus:outline-none focus:ring-0 sm:text-sm"
+					/>
+				</label>
+				<button
+					type="submit"
+					class="block w-full rounded-lg bg-indigo-600 px-5 py-3 text-sm font-medium text-white"
+				>
+					Filter
+				</button>
+			</form>
+		</div>
+	</div>
 }

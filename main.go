@@ -72,7 +72,7 @@ func main() {
 	http.Handle("/uploads/", http.StripPrefix("/uploads/", uploadsFs))
 	http.Handle("/static/", http.StripPrefix("/static/", staticFs))
 	http.HandleFunc("/", handleImagePage)
-	http.Get("GET /filter")
+	http.HandleFunc("/filter", handleImageFilter)
 	fmt.Println("Listening to :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
@@ -104,7 +104,14 @@ func handleImagePage(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleImageFilter(w http.ResponseWriter, r *http.Request) {
-	images := db.GetAllImages()
+	filter := image.DbFilter{
+		Title:   r.URL.Query().Get("title"),
+		AltText: r.URL.Query().Get("alt_text"),
+		Format:  r.URL.Query().Get("format"),
+	}
+	log.Println(fmt.Sprintf("FILTER IS HERE: %v", filter))
+
+	images := db.GetFilteredImages(filter)
 	set := make(map[int]struct{})
 	imageChan := make(chan image.DbMetadata)
 	ctx := r.Context()

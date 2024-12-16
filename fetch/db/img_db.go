@@ -8,6 +8,7 @@ import (
 	"github.com/nv4n/go-crawler/utils"
 	"log"
 	"os"
+	"strings"
 )
 
 var db *sql.DB
@@ -76,23 +77,20 @@ func GetAllImages() []image.DbMetadata {
 	return imageMetadata
 }
 
-func GetLastImage() []image.DbMetadata {
-	dbInitCheck()
-	rows, err := db.Query("SELECT * FROM public.image_metadata")
-	if err != nil {
-		utils.Warn(fmt.Sprintf("ERROR fetching all image metadata: %+v", err))
-		return nil
-	}
-	defer rows.Close()
-	var imageMetadata []image.DbMetadata
-	for rows.Next() {
-		metadata := image.DbMetadata{}
-		err = rows.Scan(&metadata.Id, &metadata.Filename, &metadata.Title, &metadata.AltText, &metadata.Resolution, &metadata.Format)
-		if err != nil {
-			utils.Warn(fmt.Sprintf("ERROR scanning image: %+v", err))
-			return imageMetadata
+func GetFilteredImages(filter image.DbFilter) []image.DbMetadata {
+	all := GetAllImages()
+	var filtered []image.DbMetadata
+	for _, metadata := range all {
+		if strings.TrimSpace(filter.Title) != "" && filter.Title != metadata.Title {
+			continue
 		}
-		imageMetadata = append(imageMetadata, metadata)
+		if strings.TrimSpace(filter.AltText) != "" && filter.AltText != metadata.AltText {
+			continue
+		}
+		if strings.TrimSpace(filter.Format) != "" && filter.Format != metadata.Format {
+			continue
+		}
+		filtered = append(filtered, metadata)
 	}
-	return imageMetadata
+	return filtered
 }
