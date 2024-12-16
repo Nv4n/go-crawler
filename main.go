@@ -139,7 +139,9 @@ func handleImageFilter(w http.ResponseWriter, r *http.Request) {
 		Format:  r.URL.Query().Get("format"),
 	}
 	log.Println(fmt.Sprintf("FILTER IS HERE: %v", filter))
-
+	if filter.Format == "" && filter.AltText == "" && filter.Title == "" {
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	}
 	images := db.GetFilteredImages(filter)
 	set := make(map[int]struct{})
 	imageChan := make(chan image.DbMetadata)
