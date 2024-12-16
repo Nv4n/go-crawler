@@ -54,6 +54,7 @@ func CrawlPage(url string, depth uint, imgChan chan<- image.ImgDownloadInfo, ctx
 
 	if !canCrawl(url, depth) {
 		utils.Warn("Can't crawl in canCrawl")
+		crawler.PageStore.Add(url)
 		<-token.GetReadTokenChan()
 
 		return
@@ -74,8 +75,6 @@ func CrawlPage(url string, depth uint, imgChan chan<- image.ImgDownloadInfo, ctx
 	}
 	if rinfo.URL != "" && rinfo.RobotsTester == nil {
 		utils.Warn("Can't crawl no robots tester")
-
-		crawler.PageStore.Add(rinfo.URL)
 		<-token.GetReadTokenChan()
 
 		return
@@ -95,12 +94,16 @@ func CrawlPage(url string, depth uint, imgChan chan<- image.ImgDownloadInfo, ctx
 
 		return
 	}
-	//e := proto.NetworkResponseReceived{}
+
 	page := crawler.Browser.MustIncognito().MustPage(url)
 	page.MustWaitDOMStable().MustScreenshot("a.png")
-	btn, _ := page.ElementR("button", "/accept\\sall\\scookies/i")
-	if btn != nil {
-		btn.MustWaitVisible().MustClick()
+	btn, err := page.ElementR(*model.ParsedFlags.AcceptElement, fmt.Sprintf("/%s/i", *model.ParsedFlags.AcceptTxt))
+	log.Println(btn)
+	if err != nil && btn != nil {
+		err = btn.WaitVisible()
+		if err != nil {
+			btn.MustClick()
+		}
 	}
 
 	page.MustWaitDOMStable().MustScreenshot("b.png")
@@ -155,10 +158,9 @@ func sendImageData(url string, ctx context.Context, imgs rod.Elements, imgChan c
 			na := "N/A"
 			altText = &na
 		}
-		fmt.Println(*src)
-		fmt.Println(*altText)
+
+		crawler.PageStore.Add(*src)
 		imgData := image.ImgDownloadInfo{Url: *src, AltText: *altText, RequestUrl: url}
-		fmt.Println(imgData)
 		if *src != "" {
 			select {
 			case <-ctx.Done():
@@ -176,10 +178,12 @@ func canCrawl(url string, depth uint) bool {
 		log.Fatal("URL HTML page store is not initialized")
 	}
 	if depth > *model.ParsedFlags.DepthLevel {
+		utils.Warn(fmt.Sprintf("Too deep %v > %v", depth, *model.ParsedFlags.DepthLevel))
 		return false
 	}
 
 	if crawler.PageStore.Contains(url) {
+		utils.Warn(fmt.Sprintf("Already crawled"))
 		return false
 	}
 	return true

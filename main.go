@@ -27,9 +27,11 @@ func init() {
 	model.ParsedFlags.Url = flag.String("url", "", "URL to be web-crawled for images")
 	model.ParsedFlags.Spa = flag.Bool("spa", false, "Is the site SPA (client-rendered)")
 	model.ParsedFlags.ExternalLinks = flag.Bool("el", false, "Follow external links")
-	model.ParsedFlags.DepthLevel = flag.Uint("dl", 3, "Depth level of image crawling")
+	model.ParsedFlags.DepthLevel = flag.Uint("dl", 5, "Depth level of image crawling")
 	model.ParsedFlags.Timeout = flag.Int("t", 2, "Minutes before timeout the execution")
 	model.ParsedFlags.Goroutines = flag.Uint("g", 20, "Maximum goroutines")
+	model.ParsedFlags.AcceptElement = flag.String("cookieel", "button", "Element to click and accept cookies")
+	model.ParsedFlags.AcceptTxt = flag.String("cookietxt", "Accept All Cookies", "Text inside accept cookies element")
 }
 func setupCrawler() (context.Context, context.CancelFunc) {
 	flag.PrintDefaults()
@@ -70,26 +72,59 @@ func main() {
 	http.Handle("/uploads/", http.StripPrefix("/uploads/", uploadsFs))
 	http.Handle("/static/", http.StripPrefix("/static/", staticFs))
 	http.HandleFunc("/", handleImagePage)
+	http.Get("GET /filter")
 	fmt.Println("Listening to :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func handleImagePage(w http.ResponseWriter, r *http.Request) {
-	//TODO REMOVE THEM FROM HERE
-	//	IT WILL CAUSE INFINITE GO ROUTINE CREATION
 	images := db.GetAllImages()
 	set := make(map[int]struct{})
 	imageChan := make(chan image.DbMetadata)
-	go func() {
+	ctx := r.Context()
+	go func(ctxGoroutine context.Context) {
 		defer close(imageChan)
 		for _, imgData := range images {
-			//TODO TRY TO REFRESH PAGE MULTIPLE TIMES
-			if _, ok := set[imgData.Id]; !ok {
-				set[imgData.Id] = struct{}{}
-				imageChan <- imgData
+			select {
+			case <-ctxGoroutine.Done():
+				return
+			default:
+				if _, ok := set[imgData.Id]; !ok {
+					set[imgData.Id] = struct{}{}
+					select {
+					case <-ctxGoroutine.Done():
+						return
+					case imageChan <- imgData:
+					}
+				}
 			}
 		}
-	}()
+	}(ctx)
 	templ.Handler(views.Page(imageChan), templ.WithStreaming()).ServeHTTP(w, r)
-	views.Page(imageChan)
+}
+
+func handleImageFilter(w http.ResponseWriter, r *http.Request) {
+	images := db.GetAllImages()
+	set := make(map[int]struct{})
+	imageChan := make(chan image.DbMetadata)
+	ctx := r.Context()
+	go func(ctxGoroutine context.Context) {
+		defer close(imageChan)
+		for _, imgData := range images {
+			select {
+			case <-ctxGoroutine.Done():
+				return
+			default:
+				if _, ok := set[imgData.Id]; !ok {
+					set[imgData.Id] = struct{}{}
+					select {
+					case <-ctxGoroutine.Done():
+						return
+					case imageChan <- imgData:
+					}
+				}
+			}
+		}
+	}(ctx)
+	templ.Handler(views.Page(imageChan), templ.WithStreaming()).ServeHTTP(w, r)
 }

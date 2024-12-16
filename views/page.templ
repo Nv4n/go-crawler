@@ -12,6 +12,7 @@ templ Page(imgs <-chan image.DbMetadata) {
 			<link href="/static/index.css" rel="stylesheet"/>
 		</head>
 		<body class="dark:bg-gray-900">
+			@Filter()
 			for img := range imgs {
 				@templ.Flush() {
 					@Image(img)

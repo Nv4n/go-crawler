@@ -51,10 +51,32 @@ func SaveImage(info image.DbMetadata, tokenStore <-chan struct{}) {
 	if err != nil {
 		utils.Warn(fmt.Sprintf("ERROR create new log in db: %+v", err))
 	}
+
 	<-tokenStore
 }
 
 func GetAllImages() []image.DbMetadata {
+	dbInitCheck()
+	rows, err := db.Query("SELECT * FROM public.image_metadata")
+	if err != nil {
+		utils.Warn(fmt.Sprintf("ERROR fetching all image metadata: %+v", err))
+		return nil
+	}
+	defer rows.Close()
+	var imageMetadata []image.DbMetadata
+	for rows.Next() {
+		metadata := image.DbMetadata{}
+		err = rows.Scan(&metadata.Id, &metadata.Filename, &metadata.Title, &metadata.AltText, &metadata.Resolution, &metadata.Format)
+		if err != nil {
+			utils.Warn(fmt.Sprintf("ERROR scanning image: %+v", err))
+			return imageMetadata
+		}
+		imageMetadata = append(imageMetadata, metadata)
+	}
+	return imageMetadata
+}
+
+func GetLastImage() []image.DbMetadata {
 	dbInitCheck()
 	rows, err := db.Query("SELECT * FROM public.image_metadata")
 	if err != nil {
