@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/benjaminestes/robots/v2"
 	"github.com/go-rod/rod"
+	"github.com/joho/godotenv"
 	"github.com/nv4n/go-crawler/fetch/token"
 	"github.com/nv4n/go-crawler/model"
 	"github.com/nv4n/go-crawler/model/image"
@@ -12,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	urlpkg "net/url"
+	"os"
 	"time"
 )
 
@@ -31,9 +33,10 @@ func Close() {
 
 func InitCrawler() {
 	crawler.PageStore = model.InitUrlStore()
-
+	_ = godotenv.Load(".env")
+	devtools := os.Getenv("CHROMIUM")
 	crawler.Browser = rod.New().
-		ControlURL("ws://127.0.0.1:9222/devtools/browser/9fc09774-ebe8-4e5b-83ea-45b62e531f6b").
+		ControlURL(devtools).
 		MustConnect()
 
 	//crawler.Browser = rod.New().MustConnect()
