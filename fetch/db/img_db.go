@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 	"github.com/nv4n/go-crawler/model/image"
 	"github.com/nv4n/go-crawler/utils"
@@ -59,6 +60,28 @@ func SaveImage(info image.DbMetadata, tokenStore <-chan struct{}) {
 func GetAllImages() []image.DbMetadata {
 	dbInitCheck()
 	rows, err := db.Query("SELECT * FROM public.image_metadata")
+	if err != nil {
+		utils.Warn(fmt.Sprintf("ERROR fetching all image metadata: %+v", err))
+		return nil
+	}
+	defer rows.Close()
+	var imageMetadata []image.DbMetadata
+	for rows.Next() {
+		metadata := image.DbMetadata{}
+		err = rows.Scan(&metadata.Id, &metadata.Filename, &metadata.Title, &metadata.AltText, &metadata.Resolution, &metadata.Format)
+		if err != nil {
+			utils.Warn(fmt.Sprintf("ERROR scanning image: %+v", err))
+			return imageMetadata
+		}
+		imageMetadata = append(imageMetadata, metadata)
+	}
+	return imageMetadata
+}
+
+func GetAllImagesWithoutIds(ids []int32) []image.DbMetadata {
+	dbInitCheck()
+	dbIds := pq.Int32Array(ids)
+	rows, err := db.Query("SELECT * FROM public.image_metadata WHERE id != ANY($1);", dbIds)
 	if err != nil {
 		utils.Warn(fmt.Sprintf("ERROR fetching all image metadata: %+v", err))
 		return nil

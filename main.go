@@ -84,12 +84,14 @@ func handleImagePage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	go func(ctxGoroutine context.Context) {
 		defer close(imageChan)
+		var ids []int32
 		for _, imgData := range images {
 			select {
 			case <-ctxGoroutine.Done():
 				return
 			default:
 				if _, ok := set[imgData.Id]; !ok {
+					ids = append(ids, int32(imgData.Id))
 					set[imgData.Id] = struct{}{}
 					select {
 					case <-ctxGoroutine.Done():
@@ -99,6 +101,33 @@ func handleImagePage(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+
+		for {
+			images := db.GetAllImagesWithoutIds(ids)
+			for _, imgData := range images {
+				select {
+				case <-ctxGoroutine.Done():
+					return
+				default:
+					if _, ok := set[imgData.Id]; !ok {
+						ids = append(ids, int32(imgData.Id))
+						set[imgData.Id] = struct{}{}
+						select {
+						case <-ctxGoroutine.Done():
+							return
+						case imageChan <- imgData:
+						}
+					}
+				}
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(5 * time.Second):
+				continue
+			}
+		}
+
 	}(ctx)
 	templ.Handler(views.Page(imageChan), templ.WithStreaming()).ServeHTTP(w, r)
 }
